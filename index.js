@@ -119,6 +119,114 @@ app.delete('/authors/:id', (req, res) => {
     });
 });
 
+// GET alla böcker
+app.get('/books', (req, res) => {
+    const sql = 'SELECT * FROM books';
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// GET bok baserat på id
+app.get('/books/:id', (req, res) => {
+    const id = req.params.id;
+    const sql = 'SELECT * FROM books WHERE id = ?';
+
+    db.query(sql, [id], (err, results) => {       
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+        
+        res.json(results[0]);
+    });
+});
+
+// POST - Skapa ny bok
+app.post('/books', (req, res) => {
+    const { title, author_id, publication_year, pages, genre, isbn } = req.body;
+    const sql = 'INSERT INTO books (title, author_id, publication_year, pages, genre, isbn) VALUES (?, ?, ?, ?, ?, ?)';
+
+    db.query(sql, [title, author_id, publication_year, pages, genre, isbn], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(201).json({ 
+            message: 'Book created successfully',
+            id: result.insertId 
+        });
+    });
+});
+
+// PUT - Uppdatera bok 
+app.put('/books/:id', (req, res) => {
+    const id = req.params.id;
+    const { title, author_id, publication_year, pages, genre, isbn } = req.body;
+    const sql = 'UPDATE books SET title = ?, author_id = ?, publication_year = ?, pages = ?, genre = ?, isbn = ? WHERE id = ?';
+
+    db.query(sql, [title, author_id, publication_year, pages, genre, isbn, id], (err, result) => {  
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+        
+        res.status(200).json({  
+            message: 'Book updated successfully',
+            id: id  
+        });
+    });
+});
+
+// DELETE - Borttagning av en bok
+app.delete('/books/:id', (req, res) => {
+    const id = req.params.id;
+    const sql = 'DELETE FROM books WHERE id = ?';
+    
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+        
+        res.status(200).json({  
+            message: 'Book deleted successfully',
+            id: id  
+        });
+    });
+});
+
+// GET statistik
+app.get('/statistics', (req, res) => {
+    const sql = `
+        SELECT 
+            COUNT(*) as total_books,
+            AVG(pages) as avg_pages,
+            MIN(publication_year) as oldest_book_year,
+            MAX(publication_year) as newest_book_year
+        FROM books
+    `;
+    
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results[0]);
+    });
+});
+
 // Startar servern
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
