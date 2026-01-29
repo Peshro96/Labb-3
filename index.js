@@ -227,6 +227,40 @@ app.get('/statistics', (req, res) => {
     });
 });
 
+// GET författare med alla sina böcker "(JOIN)"
+// Hämtar en författare och alla böcker som tillhör författaren via author_id
+app.get('/authors/:id/books', (req, res) => {
+    const id = req.params.id;
+    
+    // Först hämta författaren
+    const authorSql = 'SELECT * FROM authors WHERE id = ?';
+    
+    db.query(authorSql, [id], (err, authorResults) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (authorResults.length === 0) {
+            return res.status(404).json({ message: 'Author not found' });
+        }
+        
+        // Sen hämta alla böcker av författaren
+        const booksSql = 'SELECT id, title, publication_year, pages, genre, isbn FROM books WHERE author_id = ?';
+        
+        db.query(booksSql, [id], (err, booksResults) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            // Kombinera resultaten
+            res.json({
+                author: authorResults[0],
+                books: booksResults
+            });
+        });
+    });
+});
+
 // Startar servern
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
